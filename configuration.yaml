@@ -1,0 +1,79 @@
+
+# Loads default set of integrations. Do not remove.
+default_config:
+
+# Load frontend themes from the themes folder
+frontend:
+  themes: !include_dir_merge_named themes
+
+automation: !include automations.yaml
+script: !include scripts.yaml
+scene: !include scenes.yaml
+
+http:
+  ssl_certificate: /ssl/fullchain.pem
+  ssl_key: /ssl/privkey.pem
+input_text:
+  sonnen_start_charge:
+    name: Start laddning
+    initial: 2025-01-17T01:00
+  sonnen_stop_charge:
+    name: Start laddning
+    initial: 2025-01-17T01:00
+rest_command:
+  sonnen_set_mode_manual:
+    url: "http://192.168.68.58:80/api/v2/configurations"
+    method: PUT
+    headers:
+      Auth-Token: "<Token from sonnen battery>"
+    content_type: "application/x-www-form-urlencoded"
+    payload: "EM_OperatingMode=1"
+  sonnen_set_mode_auto:
+    url: "http://192.168.68.58:80/api/v2/configurations"
+    method: PUT
+    headers:
+      Auth-Token: "<Token from sonnen battery>"
+    content_type: "application/x-www-form-urlencoded"
+    payload: "EM_OperatingMode=2"
+  sonnen_charge:
+    url: "http://192.168.68.58:80/api/v2/setpoint/charge/3000"
+    method: POST
+    headers:
+      Auth-Token: "<Token from sonnen battery>"
+    content_type: "application/x-www-form-urlencoded"
+    payload: "EM_OperatingMode=2"
+template:
+  - sensor:
+      - name: "Sonnen Battery Power Charging"
+        unit_of_measurement: W
+        device_class: power
+        state_class: measurement
+        state: "{{ max(0, states('sensor.sonnenbatterie_260348_state_battery_inout') | float(default=0)) | round(3) }}"
+        
+      - name: "Sonnen Battery Power Discharging"
+        unit_of_measurement: W
+        device_class: power
+        state_class: measurement
+        state: "{{ max(0, 0 - states('sensor.sonnenbatterie_260348_state_battery_inout') | float(default=0)) | round(3) }}"
+
+sensor:
+  - platform: integration
+    source: sensor.sonnen_battery_power_charging
+    name: "Sonnen Battery Energy Charged Counter"
+    unit_prefix: k
+    method: left
+    
+  - platform: integration
+    source: sensor.sonnen_battery_power_discharging
+    name: "Sonnen Battery Energy Discharged Counter"
+    unit_prefix: k
+    method: left
+
+  - platform: rest
+    name: Get Sonnen USOC
+    resource: "http://192.168.68.58:80/api/v2/configurations/EM_USOC"
+    method: GET
+    value_template: "{{ value_json.EM_USOC | float }}"
+    scan_interval: 10  # Refresh every 60 seconds
+    headers:
+      Auth-Token: "<Token from sonnen battery>"
