@@ -1,0 +1,37 @@
+sonnen_set_mode_manual_and_charge:
+  alias: Set Manual Mode and Start Charge
+  sequence:
+  - response_variable: set_mode_resp
+    action: rest_command.sonnen_set_mode_manual
+    data: {}
+  - if:
+    - condition: template
+      value_template: '{{ set_mode_resp[''status''] == 200 }}'
+    then:
+    - response_variable: charge_resp
+      action: rest_command.sonnen_charge
+      data: {}
+    - if:
+      - condition: template
+        value_template: '{{ charge_resp[''status''] >= 300 }}'
+      then:
+      - action: notify.persistent_notification
+        data:
+          message: 'Error: Manual mode men ingen laddning {{ charge_resp}}'
+    else:
+    - action: notify.persistent_notification
+      data:
+        message: 'Error: Kan inte sätta manuellt läge'
+sonnen_set_mode_auto:
+  alias: Set Auto Mode
+  sequence:
+  - response_variable: set_mode_resp
+    action: rest_command.sonnen_set_mode_auto
+    data: {}
+  - if:
+    - condition: template
+      value_template: '{{ set_mode_resp[''status''] != 200 }}'
+    then:
+    - action: notify.persistent_notification
+      data:
+        message: 'Error: Kan inte sätta auto läge'
