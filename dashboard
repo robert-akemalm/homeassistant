@@ -1,0 +1,262 @@
+views:
+  - title: Home
+    sections:
+      - type: grid
+        cards:
+          - type: vertical-stack
+            cards: []
+            title: Energy
+          - type: energy-date-selection
+          - type: heading
+            icon: mdi:meter-electric-outline
+            heading_style: title
+            heading: 'Användning '
+          - type: energy-usage-graph
+          - type: heading
+            icon: mdi:solar-power-variant
+            heading_style: title
+            heading: 'Solpaneler '
+          - type: energy-solar-graph
+          - type: energy-grid-neutrality-gauge
+          - type: energy-distribution
+          - type: energy-self-sufficiency-gauge
+      - type: grid
+        cards:
+          - type: vertical-stack
+            cards:
+              - type: gauge
+                entity: sensor.sonnenbatterie_260348_state_battery_percentage_user
+                name: Batteri nivå
+                needle: true
+                severity:
+                  green: 50
+                  yellow: 25
+                  red: 0
+              - type: markdown
+                content: >+
+                  {% set start =
+                  as_datetime(states.input_datetime.sonnen_start_charge.state).astimezone()
+                  %}
+
+
+                  {% set nu = now() %}
+
+
+                  {% if start < nu %}
+                    {% set diff =((nu - start)|string).split('.')[0] %}
+                    <font color=#ff0000>
+                      Tid sedan laddningen startade: {{ diff}}
+                    </font>
+                  {% else %}
+                    {% set diff =((start - nu)|string).split('.')[0] %}
+                    <font color=#212121>
+                      Tid till nästa laddning  {{ diff}}
+                    </font>
+                  {% endif %}
+
+
+
+                  {%set color = "#152b81"%}
+
+                  {%if '-' in diff%}
+                    {%set color = "#ff0000"%}
+                  {%endif%}
+
+              - type: entities
+                entities:
+                  - entity: input_datetime.sonnen_start_charge
+                    name: Starta laddning
+                  - entity: input_datetime.sonnen_stop_charge
+                    name: Stoppa laddning
+                  - entity: input_number.sonnen_batter_buffer
+                    secondary_info: last-updated
+                    name: Buffer under laddning
+                  - entity: sensor.get_sonnen_usoc
+                    secondary_info: last-changed
+                    name: Nuvarande buffer
+                  - entity: sensor.sonnenbatterie_260348_state_battery_inout
+                    name: charge/discharge
+                  - entity: sensor.sonnenbatterie_260348_state_operating_mode
+                    name: Operating Mode
+              - show_name: true
+                show_icon: true
+                type: button
+                name: ladda nu
+                icon: mdi:battery-plus-outline
+                show_state: false
+                icon_height: 30px
+                tap_action:
+                  action: call-service
+                  service: script.sonnen_set_mode_manual_and_charge
+                  confirmation:
+                    text: Starta laddning?
+                entity: script.sonnen_set_mode_manual_and_charge
+              - show_name: true
+                show_icon: true
+                type: button
+                entity: script.sonnen_set_mode_auto
+                name: Stäng av laddning
+                icon: mdi:battery-check
+                icon_height: 30px
+                show_state: false
+                tap_action:
+                  action: call-service
+                  service: script.sonnen_set_mode_auto
+                  confirmation:
+                    text: Avsluta laddning?
+            title: Sonnen
+          - type: vertical-stack
+            cards:
+              - type: custom:apexcharts-card
+                graph_span: 24h
+                apex_config:
+                  chart:
+                    height: 178px
+                show:
+                  last_updated: true
+                experimental:
+                  color_threshold: true
+                header:
+                  title: Dagens elpriser
+                  show: true
+                  show_states: true
+                  colorize_states: true
+                span:
+                  start: day
+                now:
+                  show: true
+                yaxis:
+                  - id: first
+                    min: 0
+                    decimals: 2
+                    apex_config:
+                      tickAmount: 10
+                      forceNiceScale: true
+                series:
+                  - entity: sensor.nordpool_kwh_se4_sek_3_10_025
+                    attribute: current_price
+                    name: Pris nu
+                    show:
+                      extremas: true
+                      in_header: raw
+                      header_color_threshold: true
+                    float_precision: 3
+                    type: column
+                    data_generator: |
+                      return entity.attributes.raw_today.map((start, index) => {
+                        return [new Date(start["start"]).getTime(), entity.attributes.raw_today[index]["value"]];
+                      });
+                    color_threshold:
+                      - value: 0
+                        color: '#2085e3'
+                      - value: 0.1
+                        color: '#04822e'
+                      - value: 0.15
+                        color: '#12A141'
+                      - value: 0.3
+                        color: '#79B92C'
+                      - value: 0.35
+                        color: '#C4D81D'
+                      - value: 0.4
+                        color: '#F3DC0C'
+                      - value: 0.45
+                        color: '#F4C616'
+                      - value: 0.5
+                        color: '#EFA51E'
+                      - value: 0.55
+                        color: '#E76821'
+                      - value: 0.6
+                        color: '#E33F20'
+                      - value: 0.65
+                        color: '#DC182F'
+              - type: custom:apexcharts-card
+                graph_span: 24h
+                apex_config:
+                  chart:
+                    height: 178px
+                show:
+                  last_updated: true
+                experimental:
+                  color_threshold: true
+                header:
+                  title: Morgondagens elpriser
+                  show: true
+                  show_states: true
+                  colorize_states: true
+                span:
+                  start: day
+                  offset: +1d
+                yaxis:
+                  - id: first
+                    min: 0
+                    decimals: 2
+                    apex_config:
+                      tickAmount: 10
+                      forceNiceScale: true
+                series:
+                  - entity: sensor.nordpool_kwh_se4_sek_3_10_025
+                    name: ' '
+                    show:
+                      extremas: true
+                      in_header: false
+                      header_color_threshold: true
+                    float_precision: 3
+                    type: column
+                    data_generator: >
+                      return entity.attributes.raw_tomorrow.map((start, index)
+                      => {
+                        return [new Date(start["start"]).getTime(), entity.attributes.raw_tomorrow[index]["value"]];
+                      });
+                    color_threshold:
+                      - value: 0
+                        color: '#2085e3'
+                      - value: 0.1
+                        color: '#04822e'
+                      - value: 0.15
+                        color: '#12A141'
+                      - value: 0.3
+                        color: '#79B92C'
+                      - value: 0.35
+                        color: '#C4D81D'
+                      - value: 0.4
+                        color: '#F3DC0C'
+                      - value: 0.45
+                        color: '#F4C616'
+                      - value: 0.5
+                        color: '#EFA51E'
+                      - value: 0.55
+                        color: '#E76821'
+                      - value: 0.6
+                        color: '#E33F20'
+                      - value: 0.65
+                        color: '#DC182F'
+              - show_current: true
+                show_forecast: true
+                type: weather-forecast
+                entity: weather.forecast_hem
+                forecast_type: hourly
+                secondary_info_attribute: cloud_coverage
+            title: Nord pool
+          - type: entities
+            entities:
+              - entity: sensor.sonnenbatterie_260348_battery_system_health
+              - entity: sensor.sonnenbatterie_260348_state_consumption_current
+              - entity: sensor.sonnenbatterie_260348_state_production
+              - entity: sensor.sonnenbatterie_260348_state_battery_inout
+              - entity: sensor.sonnenbatterie_260348_state_grid_inout
+              - entity: sensor.sonnenbatterie_260348_state_operating_mode
+              - entity: select.sonnenbatterie_260348_select_operating_mode
+              - entity: sensor.sonnenbatterie_260348_state_system_status
+          - type: entities
+            entities:
+              - entity: sensor.symo_6_0_3_m_1_energi_dag
+              - entity: sensor.symo_6_0_3_m_1_energi_ar
+              - entity: sensor.solarnet_effekt_solceller
+              - entity: sensor.p1ib_active_power_l1_solar
+              - entity: sensor.p1ib_active_power_l2_solar
+              - entity: sensor.p1ib_active_power_l3_solar
+              - entity: sensor.p1ib_voltage_l2
+        column_span: 2
+      - type: grid
+        cards: []
+    cards: []
