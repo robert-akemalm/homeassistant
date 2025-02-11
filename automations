@@ -1,0 +1,24 @@
+- id: '1738012881003'
+  alias: Start Sonnen Charge Automation
+  description: ''
+  triggers:
+  - at: input_datetime.sonnen_start_charge
+    trigger: time
+  conditions: []
+  actions:
+  - action: sonnenbatterie.set_battery_reserve
+    data:
+      device_id: d5e9399622a1efc53acd2221dfcc5408
+      value: '{{ states(''input_number.sonnen_batter_buffer'') | float }}'
+- id: '1738012921059'
+  alias: Stop Sonnen Charge Automation
+  description: ''
+  triggers:
+  - at: input_datetime.sonnen_stop_charge
+    trigger: time
+  conditions: []
+  actions:
+  - action: sonnenbatterie.set_battery_reserve
+    data:
+      device_id: d5e9399622a1efc53acd2221dfcc5408
+      value: 10
